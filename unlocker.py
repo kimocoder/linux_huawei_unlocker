@@ -109,9 +109,7 @@ def obtainImei(port):
 # Check the IMEI is correct
 # Adapted from dogbert's original
 def testImeiChecksum(imei):
-	digits = []
-	for i in imei:
-		digits.append(int(i))
+	digits = [int(i) for i in imei]
 	_sum = 0
 	alt = False
 	for d in reversed(digits):
@@ -166,11 +164,17 @@ def checkLockStatus(port):
 # Compute the unlock code
 # Adapted from dogbert's original
 def computeUnlockCode(imei):
-	salt = '5e8dd316726b0335'
-	digest = hashlib.md5((imei+salt).lower()).digest()
-	code = 0
-	for i in range(0,4):
-		code += (ord(digest[i])^ord(digest[4+i])^ord(digest[8+i])^ord(digest[12+i])) << (3-i)*8
+	digest = hashlib.md5(f'{imei}5e8dd316726b0335'.lower()).digest()
+	code = sum(
+		(
+			ord(digest[i])
+			^ ord(digest[4 + i])
+			^ ord(digest[8 + i])
+			^ ord(digest[12 + i])
+		)
+		<< (3 - i) * 8
+		for i in range(4)
+	)
 	code &= 0x1ffffff
 	code |= 0x2000000
 	return code
@@ -178,7 +182,7 @@ def computeUnlockCode(imei):
 # Send AT codes to unlock the modem
 def unlockModem(port, lockCode):
 	ser = serial.Serial(port = port, rtscts = True, dsrdtr = True)
-	command = 'AT^CARDLOCK="'+ str(lockCode) + '"\r\n'
+	command = f'AT^CARDLOCK="{str(lockCode)}' + '"\r\n'
 	ser.write(command)
 	ser.close()
 #
